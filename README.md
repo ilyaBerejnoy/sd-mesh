@@ -1,5 +1,4 @@
- sd_mesh.c and sd_mesh.h реализуют логику регистрации и маршрутизации
- в самоорганизуещейся сети SD-Mesh.
+В файлах sd_mesh.c and sd_mesh.h реализуются апи регистрации и маршрутизации в самоорганизуещейся сети SD-Mesh.
 
 Файл sd_mesh.c содержит реализацию доступного апи для приложения,
 которое будет работать поверх данной сети.
@@ -41,9 +40,9 @@ Bootstrapping
 Для начала работы в сети неободимо получить какое-то число доступных узлов для инициализация таблицы рутинга.
 
 
-* sdm_echo
+* sdm_hello
 
-Данная функция отправляет широковещательный запрос ближашим соседям. В ответ все ближайшие соседи
+Данная функция отправляет широковещательный запрос ближашим соседям. В ответ все ближайшие соседи отправляют данные о себе
 
 
 * sdm_ping
@@ -53,11 +52,6 @@ Bootstrapping
 Входные параметры:
 IPV6_TYPE uuid - ID искомого узла
 
-
-This is the main bootstrapping primitive.  You pass it an address at which
-you believe that a DHT node may be living, and a query will be sent.  If
-a node replies, and if there is space in the routing table, it will be
-inserted.
 
 * sdm_insert_node
 
@@ -79,126 +73,82 @@ Doing some work
 в случае отсуствия принятых данных возвращается в выходном параметре out_sleep.
 
 Входные параметры:
-in_buf, in_buflen - указатель на буфер данных и его размер. Если за истекшее время данные никакие данные не пришли,
+in_buf, in_buf_len - указатель на буфер данных и его размер. Если за истекшее время данные никакие данные не пришли,
 то необходимо передать указатель на буфер или длину буфера равными 0.
-in_callback - колбек на 
+
 Выходные параметры:
 out_sleep - рекомендованное время, после которого sdm_handler должна быть вызвана вновь в миллисекундах.
 
 
 * sdm_search_peer
 
-Поиск пути к выбранному узлу. 
+Поиск пути к выбранному узлу. Возвращает хэндл запроса или -1 в случае ошибки. Может занимать некоторое время, статус отслеживается через вызов функции sdm_get_search_peer_status. 
+Одновременно может быть инициировано до SMD_PEER_MAX_SEARCHES (128) запросов, при попытке инициировать новый запрос функция вернет -1.
 
-Возвращает идентификатор запроса или -1 в случае ошибки.
+Входные параметры:
+PV6_TYPE uuid - ID узла;
+
+* sdm_get_search_peer_status
+Возвращает текущий статус процесса поиска узла. 
+
+Входные параметры:
+UINT request_id - хэндл запроса;
 
 
-* sdm_get_search_peer_result
-возвращает статус процедуры поиска узла.
-This schedules a search for information about the info-hash specified in
-id; it returns 1 if this is a new search, and 0 if it merely reset the
-timeouts for a search in progress.  If port is not 0, it specifies the TCP
-port on which the current peer is listening; in that case, when the search
-is complete it will be announced to the network.  The port is in host
-order, beware if you got it from a struct sockaddr_in.
-
-In either case, data is passed to the callback function as soon as it is
-available, possibly in multiple pieces.  The callback function will also
-be called when the search is complete.
-
-Up to DHT_MAX_SEARCHES (1024) searches can be in progress at a given time;
-any more, and dht_search will return -1.  If you specify a new search for
-the same info hash as a search still in progress, the previous search is
-combined with the new one -- you will only receive a completion indication
-once.
 
 Information queries
 *******************
 
-* dht_nodes
+* sdm_get_nodes_cnt
 
-This returns the number of known good, dubious and cached nodes in our
-routing table.  This can be used to decide whether it's reasonable to start
-a search; a search is likely to be successful as long as we have a few good
-nodes; however, in order to avoid overloading your bootstrap nodes, you may
-want to wait until good is at least 4 and good + doubtful is at least 30 or
-so.
+Ворзвращает число нод (суперузлов) в таблице рутинга.
 
-It also includes the number of nodes that recently sent us an unsolicited
-request; this can be used to determine if the UDP port used for the DHT is
-firewalled.
 
-If you want to display a single figure to the user, you should display
-good + doubtful, which is the total number of nodes in your routing table.
-Some clients try to estimate the total number of nodes, but this doesn't
-make much sense -- since the result is exponential in the number of nodes
-in the routing table, small variations in the latter cause huge jumps in
-the former.
+* sdm_get_nodes
 
-* dht_get_nodes
+возвращает список проверенных, надежных и наиболее часто используемых нод(суперузлов). Хорошой практикой будет пропинговать их перед выключением и после запуска устройства или приложения.
 
-This retrieves the list of known good nodes, starting with the nodes in our
-own bucket.  It is a good idea to save the list of known good nodes at
-shutdown, and ping them at startup.
 
-* dht_dump_tables
-* dht_debug
+* sdm_blacklisted
 
-These are debugging aids.
+Возврашает 1, если запрос с указанного IP адреса должен игнорироваться, иначе -1.
+
+Входные параметры:
+PV4_TYPE ip - ip адрес узла;
+
+* sdm_get_last_errno
+
+Возвращает код последней ошибки, возникшей при работе либы
+
+
+* sdm_dump_tables
+
+Выводит в поток визуальное представление таблицы рутинга.
 
 Functions provided by you
 *************************
 
-* The callback function
+* Функции для регстрации колбеков
 
-The callback function is called with 5 arguments.  Closure is simply the
-value that you passed to dht_periodic.  Event is one of DHT_EVENT_VALUES or
-DHT_EVENT_VALUES6, which indicates that we have new values, or
-DHT_EVENT_SEARCH_DONE or DHT_EVENT_SEARCH_DONE6, which indicates that
-a search has completed.  In either case, info_hash is set to the info-hash
-of the search.
+* sdm_reg_failed_node_request_callback
 
-In the case of DHT_EVENT_VALUES, data is a list of nodes in ``compact''
-format -- 6 or 18 bytes per node.  Its length in bytes is in data_len.
+Входные параметры:
+FAILED_NODE_REQUEST_FUNC_TYPE customClbck
 
-* dht_sendto
+Зарегистрированный колбек вызывается в случае неудачи при поиске пира.
+Если узел не смог найти таргет узел по своей таблице узлов и суперузлы не дали ни одного адреса, то библиотека вызвает эту функцию для сигнализации о проблеме выше приложению и приложение запросило поиск маршрута в центральном сервере.
 
-This will be called whenever the library needs to send a datagram.  If the
-integers passed to dht_init are file descriptors, this can simply be an
-alias for the sendto system call.
+* sdm_reg_send_data_callback
 
-* dht_blacklisted
+Зарегистрированный колбек вызывается в случае, когда бибиотеке нужно отправить данные по сети.
 
-This is a function that takes an IP address and returns true if this
-address should be silently ignored.  Do not use this feature unless you
-really must -- Kademlia supposes transitive reachability.
-
-* dht_hash
-
-This should compute a reasonably strong cryptographic hash of the passed
-values.  SHA-1 should be good enough.
-
-* dht_random_bytes
-
-This should fill the supplied buffer with cryptographically strong random
-bytes.  It's called every 30 minutes on average, so it doesn't need to be
-fast.
+SEND_DATA2NODES_FUNC_TYPE sendToClbck
 
 Final notes
 ***********
 
-* NAT
-
-Nothing works well across NATs, but Kademlia is somewhat less impacted than
-many other protocols.  The implementation takes care to distinguish between
-unidirectional and bidirectional reachability, and NATed nodes will
-eventually fall out from other nodes' routing tables.
-
-While there is no periodic pinging in this implementation, maintaining
-a full routing table requires slightly more than one packet exchange per
-minute, even in a completely idle network; this should be sufficient to
-make most full cone NATs happy.
+The best is yet to come!
 
 
-                                        Juliusz Chroboczek
-                                        <jch@pps.jussieu.fr>
+                                        Ilya Berezhnoy
+                                        <berezhnoy.ilya@gmail.com>
