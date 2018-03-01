@@ -3,9 +3,9 @@
 
 #include "rooting.h"
 
-int rt_compare(RootEntity* node1, RootEntity* node2);
+static int rt_compare(RootingEntity* node1, RootingEntity* node2);
 
-int rt_compare(RootEntity* node1, RootEntity* node2) {
+int rt_compare(RootingEntity* node1, RootingEntity* node2) {
 	int score = 0;
 	if(node1 != NULL && node2 != NULL)
 	{
@@ -18,9 +18,9 @@ int rt_compare(RootEntity* node1, RootEntity* node2) {
 				break;
 			}
 
-			score = (node1->shared*node1->hits_per100 - node2->shared*node2->hits_per100) >= 0 ? 1 : -1
+			score = (node1->shared*node1->hits_per100 - node2->shared*node2->hits_per100) >= 0 ? 1 : -1;
 						
-		} while(false);
+		} while(0);
 		return score;
 		// return ( (node1->path_get - node2->path_get) / (node1->path_get + node2->path_get) + 
 		// 	+ (node2->metric - node1->metric) / (node2->metric + node1->metric) ) > 0.f ? 1 : -1;
@@ -31,12 +31,12 @@ int rt_compare(RootEntity* node1, RootEntity* node2) {
 	}
 }
 
-RootEntity* rt_insert(RootEntity* node, Peer* src_peer) 
+RootingEntity* rt_insert(RootingEntity* node, Peer* src_peer)
 {
-	RootEntity* tmp = malloc(sizeof(RootEntity));
+	RootingEntity* tmp = malloc(sizeof(RootingEntity));
 	if(tmp != NULL)
 	{
-		memcpy(&tmp.peer, src_peer, sizeof(Peer));	
+		memcpy(&tmp->peer, src_peer, sizeof(Peer));	
 		tmp->hits_per100 = 100;
 		if(node == NULL)
 		{
@@ -44,16 +44,16 @@ RootEntity* rt_insert(RootEntity* node, Peer* src_peer)
 		} 
 		else
 		{
-			tmp->pNext = node-pNext;
+			tmp->pNext = node->pNext;
 			node->pNext = tmp;						
 		}
 	}	
 	return tmp;	
 }
 
-RootEntity* rt_free(RootEntity* node)
+RootingEntity* rt_free(RootingEntity* node)
 {
-	RootEntity* tmp = NULL;
+	RootingEntity* tmp = NULL;
 	while(node != NULL)
 	{
 		tmp = node;
@@ -63,23 +63,23 @@ RootEntity* rt_free(RootEntity* node)
 	return node;
 }
 
-void rt_sort(RootEntity* root, int (*f_comparator)(RootingEntity*, RootingEntity*)){
-	RootEntity* new_root = NULL;
+void rt_sort(RootingEntity* root, int (*f_comparator)(RootingEntity*, RootingEntity*)){
+	RootingEntity* new_root = NULL;
 	
-	if(f_comp == NULL)
+	if(f_comparator == NULL)
 		f_comparator = &rt_compare;
 
 	while(root != NULL) 
 	{
-		RootEntity* node = root;
+		RootingEntity* node = root;
 		root = root->pNext;
 		if(new_root == NULL || f_comparator(node, new_root) > 0){
-			node->next=new_root;
+			node->pNext=new_root;
 			new_root = node;
 		} 
 		else 
 		{
-			RootEntity* current = new_root;
+			RootingEntity* current = new_root;
 			while(current->pNext != NULL && f_comparator(current->pNext, node) > 0)
 			{
 				current = current->pNext;
@@ -113,7 +113,7 @@ RootingEntity* rt_get_node(RootingEntity* root, IPV6_TYPE uuid)
 	return rt_ent;	
 }
 
-void rt_dump(RootEntity *node, unsigned int deep)
+void rt_dump(RootingEntity *node, unsigned int deep)
 {
 	print("UUID\t\t|IP:Port\t\t|path_get\t|path_req\n");
     for ( ; node != NULL && deep > 0; node = node->pNext, deep-- ) 

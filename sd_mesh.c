@@ -9,7 +9,9 @@
 
 static FAILED_NODE_REQUEST_FUNC_TYPE failedNodeRequestClbck = NULL;
 static SEND_DATA2NODES_FUNC_TYPE sendToClbck = NULL;
-static SDM_ERROR_CODE last_err_no = SDM_ERR_NONE;
+static SDM_ERROR_CODE last_err_no = SDM_ENONE;
+
+#define SET_ERR_NO(ERR_CODE) (last_err_no=ERR_CODE)
 
 struct network_request {
     unsigned int rid;    
@@ -35,11 +37,6 @@ static RootingEntity* rootingTable = NULL;
 static PeerNode* leafTable = NULL;
 static Peer* self = NULL;
 
-static inline void sdm_set_errno(SDM_ERROR_CODE err_no) 
-{
-	last_err_no = err_no;
-}
-
 void sdm_reg_failed_node_request_callback(FAILED_NODE_REQUEST_FUNC_TYPE customClbck)
 {
 	failedNodeRequestClbck = customClbck;
@@ -60,7 +57,7 @@ int sdm_init(IPV6_TYPE uuid, IPV4_TYPE ip, PORT_TYPE port)
 {
     if(rootingTable > 0 || leafTable > 0 || self == NULL) 
     {
-        errno = SDM_EBUSY;
+		SET_ERR_NO(SDM_EBUSY);
         return FALSE;
     }
 
@@ -74,7 +71,7 @@ int sdm_uninit()
 {
  	if(rootingTable == NULL && leafTable == NULL && self == NULL) 
  	{
-        errno = SDM_INVAL;
+		SET_ERR_NO(SDM_INVAL);
         return FALSE;
     }	
 
@@ -105,7 +102,7 @@ int sdm_handler(unsigned char* in_buf, const unsigned int in_buf_len, unsigned i
 
 }
 
-unsigned int sdm_search_peer(PV6_TYPE uuid)
+unsigned int sdm_search_peer(IPV6_TYPE uuid)
 {
 
 }
@@ -120,7 +117,7 @@ unsigned int sdm_get_nodes_cnt()
 
 }
 
-RootEntity* sdm_get_nodes()
+RootingEntity* sdm_get_nodes()
 {
 
 }

@@ -5,8 +5,8 @@
 extern "C" {
 #endif
 
-typedef unsigned char[16] IPV6_TYPE;
-typedef unsigned char[4] IPV4_TYPE;
+typedef unsigned char IPV6_TYPE[16];
+typedef unsigned char IPV4_TYPE[4];
 typedef unsigned short PORT_TYPE;
 
 typedef struct{
@@ -20,16 +20,16 @@ typedef struct{
 	Address address2;		
 } Peer;
 
-typedef struct{
+typedef struct __peer_node{
 	Peer peer;
-	Peer *pPrev;
-	Peer *pNext;
+	PeerNode *pPrev;
+	PeerNode *pNext;
 } PeerNode;
 
 Peer* new_peer(IPV6_TYPE uuid, IPV4_TYPE ip, PORT_TYPE port);
 void free_peer(Peer* inst);
 void generate_peer_uuid(IPV6_TYPE uuid);
-int id_cmp(const IPV6_TYPE id1, const IPV6_TYPE id2)
+int id_cmp(const IPV6_TYPE id1, const IPV6_TYPE id2);
 PeerNode* pnt_insert(PeerNode* node, Peer* new_peer);
 PeerNode* pnt_delete_node(PeerNode* node);
 PeerNode* pnt_free(PeerNode* root);

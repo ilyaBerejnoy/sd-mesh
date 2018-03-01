@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "peerpeer.h"
+#include "peernode.h"
 
 static int pnt_compare(PeerNode* node1, PeerNode* node2);
 
@@ -53,7 +53,7 @@ PeerNode* pnt_insert(PeerNode* root, Peer* new_peer)
 	PeerNode* tmp = malloc(sizeof(PeerNode));
 	if(tmp != NULL)
 	{
-		memcpy(&tmp.peer, new_peer, sizeof(Peer));	
+		memcpy(tmp->peer, new_peer, sizeof(Peer));	
 		if(root == NULL)
 		{
 			tmp->pNext = NULL;
@@ -84,7 +84,7 @@ PeerNode* pnt_insert(PeerNode* root, Peer* new_peer)
 				tmp->pNext = root->pNext;
 				tmp->pPrev = root;
 				if(root->pNext != NULL)
-					node->pNext->pPrev = tmp;
+					root->pNext->pPrev = tmp;
 				root->pNext = tmp;					
 			}
 			else if(cmp_res < 0)
@@ -120,6 +120,7 @@ PeerNode* pnt_delete_node(PeerNode* node)
 		}
 		
 		if(nodeNext != NULL)
+		{
 			nodeNext->pPrev = nodePrev;
 			if(tmp == NULL)
 				tmp = nodeNext;	
@@ -147,7 +148,7 @@ PeerNode* pnt_free(PeerNode* root)
 void pnt_sort(PeerNode* root, int (*f_comparator)(PeerNode* node, Peer* new_peer)){
 	PeerNode* new_root = NULL;
 	
-	if(f_comp == NULL)
+	if(f_comparator == NULL)
 		f_comparator = &pnt_compare;
 
 	while(root != NULL) 
@@ -155,7 +156,7 @@ void pnt_sort(PeerNode* root, int (*f_comparator)(PeerNode* node, Peer* new_peer
 		PeerNode* node = root;
 		root = root->pNext;
 		if(new_root == NULL || f_comparator(node, new_root) > 0){
-			node->next=new_root;
+			node->pNext=new_root;
 			new_root = node;
 		} 
 		else 
@@ -179,7 +180,7 @@ Peer* pnt_get_peer(PeerNode* root, const IPV6_TYPE uuid)
 	//todo optimize searching
 	while(root != NULL) 
 	{
-		cmp_res = id_cmp(root->uuid, uuid);
+		cmp_res = id_cmp(root->peer.uuid, uuid);
 		if(cmp_res == 0)
 		{
 			peer = &root->peer;
